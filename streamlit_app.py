@@ -115,7 +115,7 @@ if uploaded_file:
 
     Nkt = st.number_input(
         "Factor Nkt (para resistencia no drenada)", 
-        value=14,
+        value=14.0,
         min_value=1.0,
         step=0.1,
         help="Factor empleado para el cálculo de la resistencia no drenada"
