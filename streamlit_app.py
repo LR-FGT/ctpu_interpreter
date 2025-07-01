@@ -52,6 +52,27 @@ def plot_ccf(lags, ccf, max_lag):
     )
     return fig
 
+def calculate_Ic_SBTn(df_in, delta_n): 
+    while (delta_n > 0.01).any():
+        df_in["CN"] = (pa / df_in["s'vo (kPa)"]) ** df_in["n"]
+        df_in["Qtn"] = ((df_in["qt (MPa)"] * 1000 - df_in["svo (kPa)"]) / pa) * df_in["CN"]
+        df_in["Ic SBTn"] = ((3.47 - np.log10(df_in["Qtn"]))**2 + (np.log10(df_in["Fr (%)"]) + 1.22)**2)**0.5
+        n_prev = df_in["n"]
+        df_in["n"] = 0.381 * df_in["Ic SBTn"] + 0.05 * (df_in["s'vo (kPa)"] / pa) - 0.15
+        delta_n = abs(df_in["n"] - n_prev)
+
+    mask = df_in["n"] > 1
+    if mask.any():
+        df_in.loc[mask, "n"] = 1
+        df_in.loc[mask, "CN"] = (pa / df_in.loc[mask, "s'vo (kPa)"]) ** df_in.loc[mask, "n"]
+        df_in.loc[mask, "Qtn"] = ((df_in.loc[mask, "qt (MPa)"] * 1000 - df_in.loc[mask, "svo (kPa)"]) / pa) * df_in.loc[mask, "CN"]
+        df_in.loc[mask, "Ic SBTn"] = ((3.47 - np.log10(df_in.loc[mask, "Qtn"]))**2 + (np.log10(df_in.loc[mask, "Fr (%)"]) + 1.22)**2)**0.5
+
+    ## print(max(delta_n))
+    return df_in
+
+#### CÓDIGO #####
+
 st.set_page_config(page_title="Procesamiento de CPTu", layout="wide")
 
 st.title("Procesador de ensayos CPTu")
