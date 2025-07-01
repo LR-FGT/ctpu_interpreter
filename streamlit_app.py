@@ -6,6 +6,9 @@ from plotly.subplots import make_subplots
 from scipy import signal
 import math
 
+# constantes
+gamma_w = 9.81 # kN/m3
+
 # funciones
 def sanity_check(df, verbose=True):
     # profundidad mayor a 0
