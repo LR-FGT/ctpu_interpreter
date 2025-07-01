@@ -77,8 +77,8 @@ if uploaded_file:
     fs_in_kpa = st.radio("¿La fricción fs está en kPa?", options=["Sí", "No"])
     u2_in_kpa = st.radio("¿La presión u2 está en kPa?", options=["Sí", "No"])
 
-   if st.button("Procesar archivo"):
-       st.subheader("Procesando archivo...")
+    if st.button("Procesar archivo"):
+        st.subheader("Procesando archivo...")
 
         # aplicar conversión de unidades
         if qc_in_mpa == "No":
@@ -100,5 +100,3 @@ if uploaded_file:
         # En el siguiente paso conectaremos con gráficos
 else:
     st.info("Por favor, sube un archivo para comenzar.")
-
-
