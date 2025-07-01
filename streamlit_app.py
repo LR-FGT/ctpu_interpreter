@@ -296,19 +296,124 @@ if uploaded_file:
             
             # actualizar session_state
             st.session_state.df = df_working
+
+            # Graficar
+            fig = make_subplots(
+                rows=1, cols=5,
+                shared_yaxes=True,
+                horizontal_spacing=0.05,
+                subplot_titles=[
+                    "qc / qt (MPa)", 
+                    "σvo / σ'vo / u0 (kPa)", 
+                    "Fr (%)", 
+                    "Qt1", 
+                    "Ic SBTn"
+                ]
+            )
             
-            # graficar Ic
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=df_working["Ic SBTn"],
-                y=df_working["depth"],
-                mode="lines",
-                name="Ic SBTn",
-                line=dict(color="purple")
-            ))
-            fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
-            fig.update_xaxes(title="Ic SBTn")
-            fig.update_layout(height=700, title="Perfil de Ic SBTn")
+            # Columna 1: qc y qt
+            fig.add_trace(
+                go.Scatter(
+                    x=df_working["qc"],
+                    y=df_working["depth"],
+                    mode="lines",
+                    name="qc",
+                    line=dict(color="blue")
+                ),
+                row=1, col=1
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=df_working["qt (MPa)"],
+                    y=df_working["depth"],
+                    mode="lines",
+                    name="qt",
+                    line=dict(color="orange")
+                ),
+                row=1, col=1
+            )
+            
+            # Columna 2: σvo, σ'vo, u0
+            fig.add_trace(
+                go.Scatter(
+                    x=df_working["svo (kPa)"],
+                    y=df_working["depth"],
+                    mode="lines",
+                    name="σvo",
+                    line=dict(color="green")
+                ),
+                row=1, col=2
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=df_working["s'vo (kPa)"],
+                    y=df_working["depth"],
+                    mode="lines",
+                    name="σ'vo",
+                    line=dict(color="darkgreen")
+                ),
+                row=1, col=2
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=df_working["u0 (kPa)"],
+                    y=df_working["depth"],
+                    mode="lines",
+                    name="u0",
+                    line=dict(color="lightblue")
+                ),
+                row=1, col=2
+            )
+            
+            # Columna 3: Fr
+            fig.add_trace(
+                go.Scatter(
+                    x=df_working["Fr (%)"],
+                    y=df_working["depth"],
+                    mode="lines",
+                    name="Fr",
+                    line=dict(color="red")
+                ),
+                row=1, col=3
+            )
+            
+            # Columna 4: Qt1
+            fig.add_trace(
+                go.Scatter(
+                    x=df_working["Qt1"],
+                    y=df_working["depth"],
+                    mode="lines",
+                    name="Qt1",
+                    line=dict(color="brown")
+                ),
+                row=1, col=4
+            )
+            
+            # Columna 5: Ic SBTn
+            fig.add_trace(
+                go.Scatter(
+                    x=df_working["Ic SBTn"],
+                    y=df_working["depth"],
+                    mode="lines",
+                    name="Ic SBTn",
+                    line=dict(color="purple")
+                ),
+                row=1, col=5
+            )
+            
+            # Ejes y layout
+            fig.update_yaxes(
+                autorange="reversed",
+                title="Profundidad (m)",
+                row=1, col=1
+            )
+            fig.update_layout(
+                height=800,
+                width=1600,
+                title="Perfiles de procesamiento inicial",
+                showlegend=True
+            )
+            
             st.plotly_chart(fig)
 
 else:
