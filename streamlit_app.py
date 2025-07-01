@@ -216,7 +216,7 @@ if uploaded_file:
     
         # shift
         shift_ok = st.checkbox(f"¿Aplicar shift con lag {max_lag}?", value=False)
-        shift_clicked = st.button("Aplicar shift")
+        shift_clicked = st.button("Continuar con el procesamiento (con o sin shift)")
         if shift_clicked:
             df_shifted = df_working.copy()
             if shift_ok and max_lag != 0:
