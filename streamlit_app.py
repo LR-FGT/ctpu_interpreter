@@ -232,7 +232,7 @@ if uploaded_file:
 :
         # --- SIEMPRE graficar después ---
         df_plot = st.session_state.df.copy()
-        df_working = df_shifted.copy()
+        df_working = df_shifted
     
         fig = make_subplots(
             rows=1, cols=3,
