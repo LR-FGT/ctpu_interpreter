@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 # funciones
 def sanity_check(df, verbose=True):
@@ -24,6 +25,12 @@ def sanity_check(df, verbose=True):
         df = df[(df["qc"] > 0) & (df["fs"] > 0)]
     
     return df
+
+def ccf_values(series1, series2):
+    p = (series1 - np.mean(series1)) / (np.std(series1) * len(series1))
+    q = (series2 - np.mean(series2)) / (np.std(series2))  
+    c = np.correlate(p, q, 'full')
+    return c
 
 st.set_page_config(page_title="Procesamiento de CPTu", layout="wide")
 
