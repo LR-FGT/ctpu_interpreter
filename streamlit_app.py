@@ -170,78 +170,78 @@ if uploaded_file:
             key="shift_confirm"
         )
         
-        shift_applied = st.button("Aplicar shift")
+    shift_applied = st.button("Aplicar shift")
     
-        if shift_applied:
-            if shift_ok and max_lag != 0:
-                if max_lag < 0:
-                    df_checked = df_checked.iloc[abs(max_lag):].reset_index(drop=True)
-                else:
-                    df_checked["fs"] = df_checked["fs"].shift(-max_lag)
-                    df_checked = df_checked.dropna().reset_index(drop=True)
-                st.success("Shift aplicado.")
+    if shift_applied:
+        if shift_ok and max_lag != 0:
+            if max_lag < 0:
+                df_checked = df_checked.iloc[abs(max_lag):].reset_index(drop=True)
             else:
-                st.info("No se aplicó shift.")
+                df_checked["fs"] = df_checked["fs"].shift(-max_lag)
+                df_checked = df_checked.dropna().reset_index(drop=True)
+            st.success("Shift aplicado.")
+        else:
+            st.info("No se aplicó shift.")
 
-        # plot qc, fs, u2 con plotly
-        fig = make_subplots(
-            rows=1, cols=3,
-            shared_yaxes=True,
-            horizontal_spacing=0.05,
-            subplot_titles=["qc (MPa)", "fs (MPa aprox)", "u2 (MPa aprox)"]
-        )
-        
-        # qc
-        fig.add_trace(
-            go.Scatter(
-                x=df_checked["qc"],
-                y=df_checked["depth"],
-                mode="lines",
-                line=dict(color="blue"),
-                name="qc"
-            ),
-            row=1, col=1
-        )
-        
-        # fs
-        fig.add_trace(
-            go.Scatter(
-                x=df_checked["fs"]/1000,
-                y=df_checked["depth"],
-                mode="lines",
-                line=dict(color="red"),
-                name="fs"
-            ),
-            row=1, col=2
-        )
-        
-        # u2
-        fig.add_trace(
-            go.Scatter(
-                x=df_checked["u2"]/1000,
-                y=df_checked["depth"],
-                mode="lines",
-                line=dict(color="green"),
-                name="u2"
-            ),
-            row=1, col=3
-        )
-        
-        # Ajustes de ejes
-        fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
-        fig.update_xaxes(title="qc (MPa)", row=1, col=1)
-        fig.update_xaxes(title="fs (MPa aprox)", row=1, col=2)
-        fig.update_xaxes(title="u2 (MPa aprox)", row=1, col=3)
-        
-        fig.update_layout(
-            height=700,
-            width=1200,
-            title="Perfiles qc, fs y u2",
-            showlegend=False
-        )
-        
-        st.plotly_chart(fig)
+    # plot qc, fs, u2 con plotly
+    fig = make_subplots(
+        rows=1, cols=3,
+        shared_yaxes=True,
+        horizontal_spacing=0.05,
+        subplot_titles=["qc (MPa)", "fs (MPa aprox)", "u2 (MPa aprox)"]
+    )
     
-        # En el siguiente paso conectaremos con gráficos
+    # qc
+    fig.add_trace(
+        go.Scatter(
+            x=df_checked["qc"],
+            y=df_checked["depth"],
+            mode="lines",
+            line=dict(color="blue"),
+            name="qc"
+        ),
+        row=1, col=1
+    )
+    
+    # fs
+    fig.add_trace(
+        go.Scatter(
+            x=df_checked["fs"],
+            y=df_checked["depth"],
+            mode="lines",
+            line=dict(color="red"),
+            name="fs"
+        ),
+        row=1, col=2
+    )
+    
+    # u2
+    fig.add_trace(
+        go.Scatter(
+            x=df_checked["u2"],
+            y=df_checked["depth"],
+            mode="lines",
+            line=dict(color="green"),
+            name="u2"
+        ),
+        row=1, col=3
+    )
+    
+    # Ajustes de ejes
+    fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
+    fig.update_xaxes(title="qc (MPa)", row=1, col=1)
+    fig.update_xaxes(title="fs (kPa)", row=1, col=2)
+    fig.update_xaxes(title="u2 (kPa)", row=1, col=3)
+    
+    fig.update_layout(
+        height=700,
+        width=1200,
+        title="Perfiles qc, fs y u2",
+        showlegend=False
+    )
+    
+    st.plotly_chart(fig)
+
+    # En el siguiente paso conectaremos con gráficos
 else:
     st.info("Por favor, sube un archivo para comenzar.")
