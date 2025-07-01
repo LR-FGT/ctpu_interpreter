@@ -162,7 +162,7 @@ if uploaded_file:
     
         st.plotly_chart(plot_ccf(valid_lags, valid_ccf, max_lag))
     
-        shift_ok = st.checkbox(f"¿Aplicar shift con lag {max_lag}?", value=True)
+        shift_ok = st.checkbox(f"¿Aplicar shift con lag {max_lag}?", value=False)
         if st.button("Aplicar shift"):
             if shift_ok and max_lag != 0:
                 if max_lag < 0:
