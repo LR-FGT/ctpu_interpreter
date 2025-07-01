@@ -145,103 +145,61 @@ if uploaded_file:
     
         st.success("Se aplicó suavizado local.")
 
-         # cross-correlation
-        lags = signal.correlation_lags(len(df_checked["fs"]), len(df_checked["qc"]))
-        ccf = ccf_values(df_checked["fs"], df_checked["qc"])
+        st.session_state.df = df_checked
+        st.success("Archivo procesado y almacenado en sesión.")
+
+    if "df" in st.session_state:
+        df_working = st.session_state.df.copy()
     
-        # recortamos a lags -20 a 20
+        # cross-correlation
+        lags = signal.correlation_lags(len(df_working["fs"]), len(df_working["qc"]))
+        ccf = ccf_values(df_working["fs"], df_working["qc"])
         valid_idx = np.where((lags >= -20) & (lags <= 20))[0]
         valid_lags = lags[valid_idx]
         valid_ccf = ccf[valid_idx]
-    
         max_corr_idx = np.argmax(valid_ccf)
         max_lag = valid_lags[max_corr_idx]
     
-        st.info(f"Lag con mayor correlación: {max_lag}")
-    
-        # plot
-        fig = plot_ccf(valid_lags, valid_ccf, max_lag)
         st.plotly_chart(plot_ccf(valid_lags, valid_ccf, max_lag))
     
-        # aplicar shift si el usuario quiere
-        shift_ok = st.checkbox(
-            f"¿Quieres aplicar shift con lag {max_lag}?", 
-            value=True, 
-            key="shift_confirm"
-        )
-        
-    shift_applied = st.button("Aplicar shift")
-    
-    if shift_applied:
-        if shift_ok and max_lag != 0:
-            if max_lag < 0:
-                df_checked = df_checked.iloc[abs(max_lag):].reset_index(drop=True)
+        shift_ok = st.checkbox(f"¿Aplicar shift con lag {max_lag}?", value=True)
+        if st.button("Aplicar shift"):
+            if shift_ok and max_lag != 0:
+                if max_lag < 0:
+                    df_working = df_working.iloc[abs(max_lag):].reset_index(drop=True)
+                else:
+                    df_working["fs"] = df_working["fs"].shift(-max_lag)
+                    df_working = df_working.dropna().reset_index(drop=True)
+                st.success("Shift aplicado.")
             else:
-                df_checked["fs"] = df_checked["fs"].shift(-max_lag)
-                df_checked = df_checked.dropna().reset_index(drop=True)
-            st.success("Shift aplicado.")
-        else:
-            st.info("No se aplicó shift.")
+                st.info("No se aplicó shift.")
+            st.session_state.df = df_working
+    
+            # plot qc, fs, u2 con plotly
+            if "df" in st.session_state:
+                df_plot = st.session_state.df.copy()
+            
+                fig = make_subplots(
+                    rows=1, cols=3,
+                    shared_yaxes=True,
+                    horizontal_spacing=0.05,
+                    subplot_titles=["qc (MPa)", "fs (kPa)", "u2 (kPa)"]
+                )
+                fig.add_trace(
+                    go.Scatter(x=df_plot["qc"], y=df_plot["depth"], mode="lines", line=dict(color="blue")),
+                    row=1, col=1
+                )
+                fig.add_trace(
+                    go.Scatter(x=df_plot["fs"], y=df_plot["depth"], mode="lines", line=dict(color="red")),
+                    row=1, col=2
+                )
+                fig.add_trace(
+                    go.Scatter(x=df_plot["u2"], y=df_plot["depth"], mode="lines", line=dict(color="green")),
+                    row=1, col=3
+                )
+                fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
+                fig.update_layout(height=700, width=1200, title="Perfiles qc, fs y u2", showlegend=False)
+                st.plotly_chart(fig)
 
-    # plot qc, fs, u2 con plotly
-    fig = make_subplots(
-        rows=1, cols=3,
-        shared_yaxes=True,
-        horizontal_spacing=0.05,
-        subplot_titles=["qc (MPa)", "fs (MPa aprox)", "u2 (MPa aprox)"]
-    )
-    
-    # qc
-    fig.add_trace(
-        go.Scatter(
-            x=df_checked["qc"],
-            y=df_checked["depth"],
-            mode="lines",
-            line=dict(color="blue"),
-            name="qc"
-        ),
-        row=1, col=1
-    )
-    
-    # fs
-    fig.add_trace(
-        go.Scatter(
-            x=df_checked["fs"],
-            y=df_checked["depth"],
-            mode="lines",
-            line=dict(color="red"),
-            name="fs"
-        ),
-        row=1, col=2
-    )
-    
-    # u2
-    fig.add_trace(
-        go.Scatter(
-            x=df_checked["u2"],
-            y=df_checked["depth"],
-            mode="lines",
-            line=dict(color="green"),
-            name="u2"
-        ),
-        row=1, col=3
-    )
-    
-    # Ajustes de ejes
-    fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
-    fig.update_xaxes(title="qc (MPa)", row=1, col=1)
-    fig.update_xaxes(title="fs (kPa)", row=1, col=2)
-    fig.update_xaxes(title="u2 (kPa)", row=1, col=3)
-    
-    fig.update_layout(
-        height=700,
-        width=1200,
-        title="Perfiles qc, fs y u2",
-        showlegend=False
-    )
-    
-    st.plotly_chart(fig)
-
-    # En el siguiente paso conectaremos con gráficos
 else:
     st.info("Por favor, sube un archivo para comenzar.")
