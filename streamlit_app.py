@@ -529,5 +529,150 @@ if uploaded_file:
             )
             st.plotly_chart(fig)
 
+            # PERMEABILIDAD
+            df_working["k (m/s)"] = np.where(
+                df_working["Ic SBTn"] < 1.0,
+                np.nan,
+                np.where(
+                    df_working["Ic SBTn"].between(1.0, 3.27),
+                    10 ** (0.952 - 3.04 * df_working["Ic SBTn"]),
+                    10 ** (-4.52 - 1.37 * df_working["Ic SBTn"])
+                )
+            )
+
+            df_working["Su_peak (kPa)"] = (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) / Nkt
+            df_working["Su_peak_ratio"] = df_working["Su_peak (kPa)"] / df_working["s'vo (kPa)"]
+            
+            # Olson y Stark (2003)
+            df_working["Su_yield_-1std"] = np.where(
+                df_working["qc1 (MPa)"] <= 6.5,
+                0.205 + 0.0143 * df_working["qc1 (MPa)"] - 0.04,
+                np.nan
+            )
+            df_working["Su_yield_mean"] = np.where(
+                df_working["qc1 (MPa)"] <= 6.5,
+                0.205 + 0.0143 * df_working["qc1 (MPa)"],
+                np.nan
+            )
+            df_working["Su_yield_+1std"] = np.where(
+                df_working["qc1 (MPa)"] <= 6.5,
+                0.205 + 0.0143 * df_working["qc1 (MPa)"] + 0.04,
+                np.nan
+            )
+            
+            # SHANSEP (1974) - Mayne
+            df_working["m'"] = 1 - (0.28 / (1 + (df_working["Ic SBTn"] / 2.65) ** 0.25))
+            df_working["s'p (kPa)"] = 0.33 * (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) ** df_working["m'"]
+            df_working["OCR"] = df_working["s'p (kPa)"] / df_working["s'vo (kPa)"]
+            df_working["Su_SHANSEP"] = 0.23 * df_working["OCR"] ** 0.8
+
+            phi = (1 / 2.68) * (np.log10((df_working["qc"] * 1000 / df_working["s'vo (kPa)"])) + 0.29)
+            phi[phi <= 0] = np.nan
+            phi = np.degrees(np.arctan(phi))
+            df_working["phi_Robertson"] = phi
+            
+            df_working["phi_Kulhawy"] = 17.6 + 11 * np.log10(df_working["Qtn"])
+            df_working.loc[df_working["phi_Kulhawy"] <= 0, "phi_Kulhawy"] = np.nan
+
+            # Olson y Stark
+            df_working["Su_liq_-1std"] = np.where(
+                df_working["qc1 (MPa)"] <= 6.5,
+                0.03 + 0.0143 * df_working["qc1 (MPa)"] - 0.03,
+                np.nan
+            )
+            df_working["Su_liq_mean"] = np.where(
+                df_working["qc1 (MPa)"] <= 6.5,
+                0.03 + 0.0143 * df_working["qc1 (MPa)"],
+                np.nan
+            )
+            df_working["Su_liq_+1std"] = np.where(
+                df_working["qc1 (MPa)"] <= 6.5,
+                0.03 + 0.0143 * df_working["qc1 (MPa)"] + 0.03,
+                np.nan
+            )
+            
+            # Robertson
+            df_working["Su_liq_Robertson"] = (
+                0.02199 - 0.0003124 * df_working["Qtn.cs"]
+            ) / (
+                1 - 0.02676 * df_working["Qtn.cs"] + 0.0001783 * df_working["Qtn.cs"] ** 2
+            )
+            df_working.loc[df_working["Su_liq_Robertson"] <= 0, "Su_liq_Robertson"] = np.nan
+            
+            # Jefferies y Been
+            df_working["Su_liq_Jefferies"] = 0.0055 * np.exp(0.05 * df_working["Qtn.cs"])
+            
+            # remolded
+            df_working["Su_rem_Robertson"] = df_working["fs"] / df_working["s'vo (kPa)"]
+
+            fig = make_subplots(
+                rows=1, cols=4,
+                shared_yaxes=True,
+                horizontal_spacing=0.05,
+                subplot_titles=[
+                    "Permeabilidad k",
+                    "Su parámetros",
+                    "Ángulo de fricción φ",
+                    "Su post-liquefacción"
+                ]
+            )
+            
+            # 1: permeabilidad
+            fig.add_trace(go.Scatter(
+                x=df_working["k (m/s)"], y=df_working["depth"],
+                mode="lines", name="k (m/s)", line=dict(color="blue")
+            ), row=1, col=1)
+            
+            # 2: Su
+            fig.add_trace(go.Scatter(
+                x=df_working["Su_peak_ratio"], y=df_working["depth"],
+                mode="lines", name="Su peak ratio", line=dict(color="orange")
+            ), row=1, col=2)
+            fig.add_trace(go.Scatter(
+                x=df_working["Su_yield_mean"], y=df_working["depth"],
+                mode="lines", name="Su yield mean", line=dict(color="green")
+            ), row=1, col=2)
+            fig.add_trace(go.Scatter(
+                x=df_working["Su_SHANSEP"], y=df_working["depth"],
+                mode="lines", name="Su SHANSEP", line=dict(color="red")
+            ), row=1, col=2)
+            
+            # 3: phi
+            fig.add_trace(go.Scatter(
+                x=df_working["phi_Robertson"], y=df_working["depth"],
+                mode="lines", name="phi Robertson", line=dict(color="purple")
+            ), row=1, col=3)
+            fig.add_trace(go.Scatter(
+                x=df_working["phi_Kulhawy"], y=df_working["depth"],
+                mode="lines", name="phi Kulhawy", line=dict(color="brown")
+            ), row=1, col=3)
+            
+            # 4: post-liq Su
+            fig.add_trace(go.Scatter(
+                x=df_working["Su_liq_mean"], y=df_working["depth"],
+                mode="lines", name="Su liq mean", line=dict(color="cyan")
+            ), row=1, col=4)
+            fig.add_trace(go.Scatter(
+                x=df_working["Su_liq_Robertson"], y=df_working["depth"],
+                mode="lines", name="Su liq Robertson", line=dict(color="darkgreen")
+            ), row=1, col=4)
+            fig.add_trace(go.Scatter(
+                x=df_working["Su_liq_Jefferies"], y=df_working["depth"],
+                mode="lines", name="Su liq Jefferies", line=dict(color="black")
+            ), row=1, col=4)
+            fig.add_trace(go.Scatter(
+                x=df_working["Su_rem_Robertson"], y=df_working["depth"],
+                mode="lines", name="Su remolded", line=dict(color="gray")
+            ), row=1, col=4)
+            
+            # ajustes
+            fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
+            fig.update_layout(
+                height=800, width=2000,
+                title="Parámetros de permeabilidad, Su, φ y post-liquefacción",
+                showlegend=True
+            )
+            st.plotly_chart(fig)
+
 else:
     st.info("Por favor, sube un archivo para comenzar.")
