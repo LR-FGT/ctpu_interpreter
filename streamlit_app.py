@@ -100,7 +100,7 @@ if uploaded_file:
     an = st.number_input(
         "Área neta del cono (-)", 
         value=0.75,
-        min_value=0.0,
+        min_value=0.01,
         step=0.01,
         help="Relación de área neta del cono (valor típico entre 0.75 y 0.85)"
     )
@@ -108,7 +108,7 @@ if uploaded_file:
     pa = st.number_input(
         "Presión atmosférica (kPa)", 
         value=101.325,
-        min_value=0.0,
+        min_value=1,
         step=0.1,
         help="Presión atmosférica de referencia"
     )
@@ -116,7 +116,7 @@ if uploaded_file:
     Nkt = st.number_input(
         "Factor Nkt (para resistencia no drenada)", 
         value=14,
-        min_value=0.0,
+        min_value=1.0,
         step=0.1,
         help="Factor empleado para el cálculo de la resistencia no drenada"
     )
