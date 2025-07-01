@@ -717,7 +717,6 @@ if uploaded_file:
                 # aquí podrías en el futuro agregar más hojas:
                 # resumen = df_working.describe()
                 # resumen.to_excel(writer, sheet_name="Resumen")
-                writer.save()
             
             # posición al inicio
             excel_buffer.seek(0)
