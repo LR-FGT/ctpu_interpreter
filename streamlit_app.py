@@ -77,28 +77,25 @@ if uploaded_file:
     fs_in_kpa = st.radio("¿La fricción fs está en kPa?", options=["Sí", "No"], key="fs_radio")
     u2_in_kpa = st.radio("¿La presión u2 está en kPa?", options=["Sí", "No"], key="u2_radio")
 
+    factor_qc = 1.0
+    factor_fs = 1.0
+    factor_u2 = 1.0
+
     if qc_in_mpa == "No":
-        st.session_state.factor_qc = st.number_input("Factor de conversión para qc:", value=1.0, key="factor_qc")
-    else:
-        st.session_state.factor_qc = 1.0
-
+        factor_qc = st.number_input("Factor de conversión para qc:", value=1.0, key="factor_qc")
     if fs_in_kpa == "No":
-        st.session_state.factor_fs = st.number_input("Factor de conversión para fs:", value=1.0, key="factor_fs")
-    else:
-        st.session_state.factor_fs = 1.0
-
+        factor_fs = st.number_input("Factor de conversión para fs:", value=1.0, key="factor_fs")
     if u2_in_kpa == "No":
-        st.session_state.factor_u2 = st.number_input("Factor de conversión para u2:", value=1.0, key="factor_u2")
-    else:
-        st.session_state.factor_u2 = 1.0
+        factor_u2 = st.number_input("Factor de conversión para u2:", value=1.0, key="factor_u2")
+
 
     if st.button("Procesar archivo"):
         st.subheader("Procesando archivo...")
 
-        # aplicar conversión de unidades usando session_state
-        df["qc"] = df["qc"] * st.session_state.factor_qc
-        df["fs"] = df["fs"] * st.session_state.factor_fs
-        df["u2"] = df["u2"] * st.session_state.factor_u2
+        # aplicar conversión de unidades
+        df["qc"] = df["qc"] * factor_qc
+        df["fs"] = df["fs"] * factor_fs
+        df["u2"] = df["u2"] * factor_u2
 
         # ejecutar el chequeo de consistencia
         df_checked = sanity_check(df)
