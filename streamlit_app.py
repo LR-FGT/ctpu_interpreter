@@ -117,7 +117,8 @@ if uploaded_file:
         "Factor Nkt (para resistencia no drenada)", 
         value=14,
         min_value=0.0,
-        step=0.1
+        step=0.1,
+        help="Factor empleado para el cálculo de la resistencia no drenada"
     )
     
     # Conversión de unidades
