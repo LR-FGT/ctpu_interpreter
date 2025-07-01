@@ -669,10 +669,41 @@ if uploaded_file:
             fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
             fig.update_layout(
                 height=800, width=2000,
-                title="Parámetros de permeabilidad, Su, φ y post-liquefacción",
+                title="Parámetros de permeabilidad, Su, φ y post-licuación",
                 showlegend=True
             )
-            st.plotly_chart(fig)
+            # Ejes Y en todas las columnas
+            fig.update_yaxes(
+                autorange="reversed",
+                title="Profundidad (m)"
+            )
+            
+            # X de permeabilidad log
+            fig.update_xaxes(
+                type="log",
+                title="k (m/s)",
+                row=1, col=1
+            )
+            
+            # X de Su
+            fig.update_xaxes(
+                range=[0, 1],
+                title="Relación Su",
+                row=1, col=2
+            )
+            
+            # X de phi
+            fig.update_xaxes(
+                title="Ángulo de fricción φ (°)",
+                row=1, col=3
+            )
+            
+            # X de post-liq Su
+            fig.update_xaxes(
+                range=[0, 1],
+                title="Relación Su post-liq",
+                row=1, col=4
+            )
 
 else:
     st.info("Por favor, sube un archivo para comenzar.")
