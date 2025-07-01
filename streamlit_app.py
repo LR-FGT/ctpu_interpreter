@@ -175,31 +175,31 @@ if uploaded_file:
                 st.info("No se aplicó shift.")
             st.session_state.df = df_working
     
-            # plot qc, fs, u2 con plotly
-            if "df" in st.session_state:
-                df_plot = st.session_state.df.copy()
-            
-                fig = make_subplots(
-                    rows=1, cols=3,
-                    shared_yaxes=True,
-                    horizontal_spacing=0.05,
-                    subplot_titles=["qc (MPa)", "fs (kPa)", "u2 (kPa)"]
-                )
-                fig.add_trace(
-                    go.Scatter(x=df_plot["qc"], y=df_plot["depth"], mode="lines", line=dict(color="blue")),
-                    row=1, col=1
-                )
-                fig.add_trace(
-                    go.Scatter(x=df_plot["fs"], y=df_plot["depth"], mode="lines", line=dict(color="red")),
-                    row=1, col=2
-                )
-                fig.add_trace(
-                    go.Scatter(x=df_plot["u2"], y=df_plot["depth"], mode="lines", line=dict(color="green")),
-                    row=1, col=3
-                )
-                fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
-                fig.update_layout(height=700, width=1200, title="Perfiles qc, fs y u2", showlegend=False)
-                st.plotly_chart(fig)
+        # plot qc, fs, u2 con plotly
+        if "df" in st.session_state:
+            df_plot = st.session_state.df.copy()
+        
+            fig = make_subplots(
+                rows=1, cols=3,
+                shared_yaxes=True,
+                horizontal_spacing=0.05,
+                subplot_titles=["qc (MPa)", "fs (kPa)", "u2 (kPa)"]
+            )
+            fig.add_trace(
+                go.Scatter(x=df_plot["qc"], y=df_plot["depth"], mode="lines", line=dict(color="blue")),
+                row=1, col=1
+            )
+            fig.add_trace(
+                go.Scatter(x=df_plot["fs"], y=df_plot["depth"], mode="lines", line=dict(color="red")),
+                row=1, col=2
+            )
+            fig.add_trace(
+                go.Scatter(x=df_plot["u2"], y=df_plot["depth"], mode="lines", line=dict(color="green")),
+                row=1, col=3
+            )
+            fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
+            fig.update_layout(height=700, width=1200, title="Perfiles qc, fs y u2", showlegend=False)
+            st.plotly_chart(fig)
 
 else:
     st.info("Por favor, sube un archivo para comenzar.")
