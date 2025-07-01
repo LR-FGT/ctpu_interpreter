@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from scipy import signal
 
 # funciones
@@ -163,46 +164,82 @@ if uploaded_file:
         st.plotly_chart(plot_ccf(valid_lags, valid_ccf, max_lag))
     
         # aplicar shift si el usuario quiere
-        apply_shift = st.checkbox(f"¿Aplicar shift con lag {max_lag}?", value=True)
-        if apply_shift and max_lag != 0:
-            if max_lag < 0:
-                df_checked = df_checked.iloc[abs(max_lag):].reset_index(drop=True)
+           shift_ok = st.checkbox(
+            f"¿Quieres aplicar shift con lag {max_lag}?", 
+            value=True, 
+            key="shift_confirm"
+        )
+        
+        shift_applied = st.button("Aplicar shift")
+    
+        if shift_applied:
+            if shift_ok and max_lag != 0:
+                if max_lag < 0:
+                    df_checked = df_checked.iloc[abs(max_lag):].reset_index(drop=True)
+                else:
+                    df_checked["fs"] = df_checked["fs"].shift(-max_lag)
+                    df_checked = df_checked.dropna().reset_index(drop=True)
+                st.success("Shift aplicado.")
             else:
-                df_checked["fs"] = df_checked["fs"].shift(-max_lag)
-                df_checked = df_checked.dropna().reset_index(drop=True)
-            st.success("Shift aplicado.")
-        else:
             st.info("No se aplicó shift.")
 
         # plot qc, fs, u2 con plotly
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df_checked["qc"], 
-            y=df_checked["depth"], 
-            mode='lines',
-            name="qc (MPa)",
-            line=dict(color="blue")
-        ))
-        fig.add_trace(go.Scatter(
-            x=df_checked["fs"]/1000,  # kPa a MPa
-            y=df_checked["depth"], 
-            mode='lines',
-            name="fs (MPa aprox)",
-            line=dict(color="red")
-        ))
-        fig.add_trace(go.Scatter(
-            x=df_checked["u2"]/1000,
-            y=df_checked["depth"],
-            mode='lines',
-            name="u2 (MPa aprox)",
-            line=dict(color="green")
-        ))
-        fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
-        fig.update_xaxes(title="Presión/Resistencia")
+        fig = make_subplots(
+            rows=1, cols=3,
+            shared_yaxes=True,
+            horizontal_spacing=0.05,
+            subplot_titles=["qc (MPa)", "fs (MPa aprox)", "u2 (MPa aprox)"]
+        )
+        
+        # qc
+        fig.add_trace(
+            go.Scatter(
+                x=df_checked["qc"],
+                y=df_checked["depth"],
+                mode="lines",
+                line=dict(color="blue"),
+                name="qc"
+            ),
+            row=1, col=1
+        )
+        
+        # fs
+        fig.add_trace(
+            go.Scatter(
+                x=df_checked["fs"]/1000,
+                y=df_checked["depth"],
+                mode="lines",
+                line=dict(color="red"),
+                name="fs"
+            ),
+            row=1, col=2
+        )
+        
+        # u2
+        fig.add_trace(
+            go.Scatter(
+                x=df_checked["u2"]/1000,
+                y=df_checked["depth"],
+                mode="lines",
+                line=dict(color="green"),
+                name="u2"
+            ),
+            row=1, col=3
+        )
+        
+        # Ajustes de ejes
+        fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
+        fig.update_xaxes(title="qc (MPa)", row=1, col=1)
+        fig.update_xaxes(title="fs (MPa aprox)", row=1, col=2)
+        fig.update_xaxes(title="u2 (MPa aprox)", row=1, col=3)
+        
         fig.update_layout(
             height=700,
-            title="Perfiles qc, fs y u2"
+            width=1200,
+            title="Perfiles qc, fs y u2",
+            showlegend=False
         )
+        
         st.plotly_chart(fig)
     
         # En el siguiente paso conectaremos con gráficos
