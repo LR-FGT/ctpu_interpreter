@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
+from scipy import signal
 
 # funciones
 def sanity_check(df, verbose=True):
@@ -31,6 +33,19 @@ def ccf_values(series1, series2):
     q = (series2 - np.mean(series2)) / (np.std(series2))  
     c = np.correlate(p, q, 'full')
     return c
+
+def plot_ccf(lags, ccf, max_lag):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=lags, y=ccf, mode='lines', name='CCF'))
+    fig.add_vline(x=0, line_dash="dash", line_color="black")
+    fig.add_vline(x=max_lag, line_dash="dot", line_color="red")
+    fig.update_layout(
+        title="Cross-correlation qc vs fs",
+        xaxis_title="Lags",
+        yaxis_title="Correlation coefficient",
+        height=400
+    )
+    return fig
 
 st.set_page_config(page_title="Procesamiento de CPTu", layout="wide")
 
@@ -109,6 +124,55 @@ if uploaded_file:
 
         st.success("Sanity check aplicado correctamente. Muestra del resultado:")
         st.dataframe(df_checked.head())
+
+        # locally smooth
+        window_pts = 2
+        reject_nstd = 1.2
+    
+        for idx in df_checked.index[window_pts:-window_pts]:
+            region = df_checked.loc[idx - window_pts:idx + window_pts][['qc', 'fs']].values
+            region = np.delete(region, window_pts, axis=0)
+            qc_mean, fs_mean = np.mean(region, axis=0)
+            qc_std, fs_std = np.std(region, axis=0, ddof=1)
+            if qc_std == 0 or fs_std == 0:
+                continue
+            qc_z = abs(df_checked.at[idx, 'qc'] - qc_mean) / qc_std
+            fs_z = abs(df_checked.at[idx, 'fs'] - fs_mean) / fs_std
+            if qc_z > reject_nstd or fs_z > reject_nstd:
+                df_checked.at[idx, 'qc'] = qc_mean
+                df_checked.at[idx, 'fs'] = fs_mean
+    
+        st.success("Se aplicó suavizado local.")
+
+         # cross-correlation
+        lags = signal.correlation_lags(len(df_checked["fs"]), len(df_checked["qc"]))
+        ccf = ccf_values(df_checked["fs"], df_checked["qc"])
+    
+        # recortamos a lags -20 a 20
+        valid_idx = np.where((lags >= -20) & (lags <= 20))[0]
+        valid_lags = lags[valid_idx]
+        valid_ccf = ccf[valid_idx]
+    
+        max_corr_idx = np.argmax(valid_ccf)
+        max_lag = valid_lags[max_corr_idx]
+    
+        st.info(f"Lag con mayor correlación: {max_lag}")
+    
+        # plot
+        fig = plot_ccf(valid_lags, valid_ccf, max_lag)
+        st.plotly_chart(plot_ccf(valid_lags, valid_ccf, max_lag))
+    
+        # aplicar shift si el usuario quiere
+        apply_shift = st.checkbox(f"¿Aplicar shift con lag {max_lag}?", value=True)
+        if apply_shift and max_lag != 0:
+            if max_lag < 0:
+                df_checked = df_checked.iloc[abs(max_lag):].reset_index(drop=True)
+            else:
+                df_checked["fs"] = df_checked["fs"].shift(-max_lag)
+                df_checked = df_checked.dropna().reset_index(drop=True)
+            st.success("Shift aplicado.")
+        else:
+            st.info("No se aplicó shift.")
     
         # En el siguiente paso conectaremos con gráficos
 else:
