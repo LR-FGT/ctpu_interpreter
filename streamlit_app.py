@@ -202,7 +202,7 @@ if uploaded_file:
 
     if "df" in st.session_state:
         df_working = st.session_state.df.copy()
-    
+        
         # cross-correlation
         lags = signal.correlation_lags(len(df_working["fs"]), len(df_working["qc"]))
         ccf = ccf_values(df_working["fs"], df_working["qc"])
@@ -214,42 +214,35 @@ if uploaded_file:
     
         st.plotly_chart(plot_ccf(valid_lags, valid_ccf, max_lag))
     
+        # shift
         shift_ok = st.checkbox(f"¿Aplicar shift con lag {max_lag}?", value=False)
-        if st.button("Aplicar shift"):
+        shift_clicked = st.button("Aplicar shift")
+        if shift_clicked:
+            df_shifted = df_working.copy()
             if shift_ok and max_lag != 0:
                 if max_lag < 0:
-                    df_working = df_working.iloc[abs(max_lag):].reset_index(drop=True)
+                    df_shifted = df_shifted.iloc[abs(max_lag):].reset_index(drop=True)
                 else:
-                    df_working["fs"] = df_working["fs"].shift(-max_lag)
-                    df_working = df_working.dropna().reset_index(drop=True)
+                    df_shifted["fs"] = df_shifted["fs"].shift(-max_lag)
+                    df_shifted = df_shifted.dropna().reset_index(drop=True)
                 st.success("Shift aplicado.")
             else:
                 st.info("No se aplicó shift.")
-            st.session_state.df = df_working
+            st.session_state.df = df_shifted
     
-        # plot qc, fs, u2 con plotly
+        # --- SIEMPRE graficar después ---
         df_plot = st.session_state.df.copy()
     
         fig = make_subplots(
             rows=1, cols=3,
             shared_yaxes=True,
-            horizontal_spacing=0.05,
             subplot_titles=["qc (MPa)", "fs (kPa)", "u2 (kPa)"]
         )
-        fig.add_trace(
-            go.Scatter(x=df_plot["qc"], y=df_plot["depth"], mode="lines", line=dict(color="blue")),
-            row=1, col=1
-        )
-        fig.add_trace(
-            go.Scatter(x=df_plot["fs"], y=df_plot["depth"], mode="lines", line=dict(color="red")),
-            row=1, col=2
-        )
-        fig.add_trace(
-            go.Scatter(x=df_plot["u2"], y=df_plot["depth"], mode="lines", line=dict(color="green")),
-            row=1, col=3
-        )
-        fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
-        fig.update_layout(height=700, width=1200, title="Perfiles qc, fs y u2", showlegend=False)
+        fig.add_trace(go.Scatter(x=df_plot["qc"], y=df_plot["depth"], mode="lines", name="qc"), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df_plot["fs"], y=df_plot["depth"], mode="lines", name="fs"), row=1, col=2)
+        fig.add_trace(go.Scatter(x=df_plot["u2"], y=df_plot["depth"], mode="lines", name="u2"), row=1, col=3)
+        fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
+        fig.update_layout(height=700, width=1200, showlegend=True)
         st.plotly_chart(fig)
 
         # cálculo de elevación
