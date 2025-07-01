@@ -407,5 +407,127 @@ if uploaded_file:
             
             st.plotly_chart(fig)
 
+            # FC Robinson
+            df_working["FC_Robinson"] = (47.531 * df_working["Ic SBTn"] - 60.56).clip(0, 100)
+            
+            # FC Boulanger
+            df_working["FC_Boulanger"] = (80 * df_working["Ic SBTn"] - 137).clip(0, 100)
+            
+            # FC Maurer
+            df_working["FC_Maurer"] = (80.6 * df_working["Ic SBTn"] - 128.6).clip(0, 100)
+            
+            # FC FLOPAC
+            df_working["FC_FLOPAC"] = np.where(
+                df_working["Ic SBTn"] <= 1.37, 0,
+                np.where(
+                    df_working["Ic SBTn"] < 3.68,
+                    np.sqrt(-1609.85 + 856.321 * df_working["Ic SBTn"]**2),
+                    100
+                )
+            )
+
+            # Cq Olson & Stark
+            df_working["Cq"] = 1.8 / (0.8 + 0.001 * df_working["s'vo (kPa)"] / 0.1)
+            
+            # qc1
+            df_working["qc1 (MPa)"] = df_working["Cq"] * df_working["qc"]
+            
+            # boundary
+            df_working["boundary_qc1"] = (df_working["s'vo (kPa)"] / 1.10E-2) ** (1/4.79)
+
+            # Bq
+            df_working["Bq"] = (
+                (df_working["u2"] - df_working["u0 (kPa)"])
+                /
+                (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"])
+            )
+            
+            # Qtn
+            df_working["CN"] = (pa / df_working["s'vo (kPa)"]) ** df_working["n"]
+            df_working["Qtn"] = ((df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) / pa) * df_working["CN"]
+            
+            # Qtn.cs
+            df_working["Qtn.cs"] = np.where(
+                df_working["Ic SBTn"] > 1.64,
+                (
+                    -0.403 * df_working["Ic SBTn"]**4
+                    + 5.581 * df_working["Ic SBTn"]**3
+                    - 21.631 * df_working["Ic SBTn"]**2
+                    + 33.75 * df_working["Ic SBTn"]
+                    - 17.88
+                ) * df_working["Qtn"],
+                df_working["Qtn"]
+            )
+            
+            # psi Plewes
+            with np.errstate(divide='ignore', invalid='ignore'):
+                df_working["psi_Plewes"] = np.log(
+                    (df_working["Qtn"] * (1 - df_working["Bq"])) 
+                    / (3.6 + 10.2 / df_working["Fr (%)"])
+                ) / (1.33 * df_working["Fr (%)"] - 11.9)
+            df_working["psi_Plewes"].fillna(-0.05, inplace=True)
+            
+            # psi Robertson
+            with np.errstate(divide='ignore'):
+                df_working["psi_Robertson"] = 0.56 - 0.33 * np.log10(df_working["Qtn.cs"])
+            df_working["psi_Robertson"].fillna(-0.05, inplace=True)
+
+            fig = make_subplots(
+                rows=1, cols=3,
+                shared_yaxes=True,
+                horizontal_spacing=0.05,
+                subplot_titles=[
+                    "Contenidos de finos (FC)",
+                    "qc1 y frontera",
+                    "Psi (Plewes y Robertson)"
+                ]
+            )
+            
+            # FCs
+            fig.add_trace(go.Scatter(
+                x=df_working["FC_Robinson"], y=df_working["depth"],
+                mode="lines", name="FC Robinson", line=dict(color="red")
+            ), row=1, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_working["FC_Boulanger"], y=df_working["depth"],
+                mode="lines", name="FC Boulanger", line=dict(color="orange")
+            ), row=1, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_working["FC_Maurer"], y=df_working["depth"],
+                mode="lines", name="FC Maurer", line=dict(color="green")
+            ), row=1, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_working["FC_FLOPAC"], y=df_working["depth"],
+                mode="lines", name="FC FLOPAC", line=dict(color="purple")
+            ), row=1, col=1)
+            
+            # qc1 y boundary
+            fig.add_trace(go.Scatter(
+                x=df_working["qc1 (MPa)"], y=df_working["depth"],
+                mode="lines", name="qc1", line=dict(color="brown")
+            ), row=1, col=2)
+            fig.add_trace(go.Scatter(
+                x=df_working["boundary_qc1"], y=df_working["depth"],
+                mode="lines", name="Boundary qc1", line=dict(color="black", dash="dash")
+            ), row=1, col=2)
+            
+            # psi
+            fig.add_trace(go.Scatter(
+                x=df_working["psi_Plewes"], y=df_working["depth"],
+                mode="lines", name="Psi Plewes", line=dict(color="blue")
+            ), row=1, col=3)
+            fig.add_trace(go.Scatter(
+                x=df_working["psi_Robertson"], y=df_working["depth"],
+                mode="lines", name="Psi Robertson", line=dict(color="cyan")
+            ), row=1, col=3)
+            
+            fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
+            fig.update_layout(
+                height=800, width=1600,
+                title="Parámetros FC, qc1, psi",
+                showlegend=True
+            )
+            st.plotly_chart(fig)
+
 else:
     st.info("Por favor, sube un archivo para comenzar.")
