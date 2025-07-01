@@ -229,7 +229,7 @@ if uploaded_file:
             else:
                 st.info("No se aplicó shift.")
             st.session_state.df = df_shifted
-:
+
         # --- SIEMPRE graficar después ---
         df_plot = st.session_state.df.copy()
         df_working = df_shifted
