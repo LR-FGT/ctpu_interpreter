@@ -108,8 +108,8 @@ if uploaded_file:
     pa = st.number_input(
         "Presión atmosférica (kPa)", 
         value=101.325,
-        min_value=1,
-        step=0.1,
+        min_value=1.000,
+        step=0.001,
         help="Presión atmosférica de referencia"
     )
 
