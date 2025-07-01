@@ -173,6 +173,37 @@ if uploaded_file:
             st.success("Shift aplicado.")
         else:
             st.info("No se aplicó shift.")
+
+        # plot qc, fs, u2 con plotly
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df_checked["qc"], 
+            y=df_checked["depth"], 
+            mode='lines',
+            name="qc (MPa)",
+            line=dict(color="blue")
+        ))
+        fig.add_trace(go.Scatter(
+            x=df_checked["fs"]/1000,  # kPa a MPa
+            y=df_checked["depth"], 
+            mode='lines',
+            name="fs (MPa aprox)",
+            line=dict(color="red")
+        ))
+        fig.add_trace(go.Scatter(
+            x=df_checked["u2"]/1000,
+            y=df_checked["depth"],
+            mode='lines',
+            name="u2 (MPa aprox)",
+            line=dict(color="green")
+        ))
+        fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
+        fig.update_xaxes(title="Presión/Resistencia")
+        fig.update_layout(
+            height=700,
+            title="Perfiles qc, fs y u2"
+        )
+        st.plotly_chart(fig)
     
         # En el siguiente paso conectaremos con gráficos
 else:
