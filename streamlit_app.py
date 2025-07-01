@@ -705,5 +705,7 @@ if uploaded_file:
                 row=1, col=4
             )
 
+            st.plotly_chart(fig)
+
 else:
     st.info("Por favor, sube un archivo para comenzar.")
