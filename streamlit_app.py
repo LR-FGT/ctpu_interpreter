@@ -229,11 +229,10 @@ if uploaded_file:
             else:
                 st.info("No se aplicó shift.")
             st.session_state.df = df_shifted
-            
-    if "df" in st.session_state:
+:
         # --- SIEMPRE graficar después ---
         df_plot = st.session_state.df.copy()
-        df_working = st.session_state.df.copy()
+        df_working = df_shifted.copy()
     
         fig = make_subplots(
             rows=1, cols=3,
