@@ -4,6 +4,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy import signal
+import math
 
 # funciones
 def sanity_check(df, verbose=True):
@@ -92,6 +93,32 @@ if uploaded_file:
         wt = st.number_input("Nivel freático (m)", value=1.0)
     else:
         wt = None
+
+    # parámetros avanzados
+    st.subheader("Parámetros avanzados")
+
+    an = st.number_input(
+        "Área neta del cono (-)", 
+        value=0.75,
+        min_value=0.0,
+        step=0.01,
+        help="Relación de área neta del cono (valor típico entre 0.75 y 0.85)"
+    )
+
+    pa = st.number_input(
+        "Presión atmosférica (kPa)", 
+        value=101.325,
+        min_value=0.0,
+        step=0.1,
+        help="Presión atmosférica de referencia"
+    )
+
+    Nkt = st.number_input(
+        "Factor Nkt (para resistencia no drenada)", 
+        value=14,
+        min_value=0.0,
+        step=0.1
+    )
     
     # Conversión de unidades
     st.subheader("Conversión de unidades")
@@ -199,6 +226,64 @@ if uploaded_file:
             )
             fig.update_yaxes(autorange="reversed", title="Profundidad (m)", row=1, col=1)
             fig.update_layout(height=700, width=1200, title="Perfiles qc, fs y u2", showlegend=False)
+            st.plotly_chart(fig)
+
+            df_working = st.session_state.df.copy()
+    
+            # cálculo de elevación
+            if elev is not None and not math.isnan(elev):
+                df_working["elevation (m.s.n.m.)"] = elev - df_working["depth"]
+            else:
+                df_working["elevation (m.s.n.m.)"] = np.nan
+            
+            # nivel freático
+            if wt is not None and not math.isnan(wt):
+                h = df_working["depth"] - wt
+                h[h < 0] = 0
+                df_working["u0 (kPa)"] = gamma_w * h
+            else:
+                df_working["u0 (kPa)"] = 0
+            
+            # qt
+            df_working["qt (MPa)"] = df_working["qc"] + (df_working["u2"] / 1000) * (1 - an)
+            
+            # sigma vo
+            df_working["svo (kPa)"] = gamma * df_working["depth"]
+            df_working["s'vo (kPa)"] = df_working["svo (kPa)"] - df_working["u0 (kPa)"]
+            
+            # Qt1
+            df_working["Qt1"] = (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) / df_working["s'vo (kPa)"]
+            
+            # Fr
+            df_working["Fr (%)"] = df_working["fs"] / (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) * 100
+            
+            # Ic inicial
+            df_working["Ic SBTn"] = ((3.47 - np.log10(df_working["Qt1"]))**2 + (np.log10(df_working["Fr (%)"]) + 1.22)**2)**0.5
+            
+            # n inicial
+            df_working["n"] = 0.381 * df_working["Ic SBTn"] + 0.05 * (df_working["s'vo (kPa)"] / pa) - 0.15
+            
+            # delta n
+            delta_n = 100 - df_working["n"]
+            
+            # iterar
+            df_working = calculate_Ic_SBTn(df_working, delta_n)
+            
+            # actualizar session_state
+            st.session_state.df = df_working
+            
+            # graficar Ic
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=df_working["Ic SBTn"],
+                y=df_working["depth"],
+                mode="lines",
+                name="Ic SBTn",
+                line=dict(color="purple")
+            ))
+            fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
+            fig.update_xaxes(title="Ic SBTn")
+            fig.update_layout(height=700, title="Perfil de Ic SBTn")
             st.plotly_chart(fig)
 
 else:
