@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy import signal
 import math
+import io
 
 # constantes
 gamma_w = 9.81 # kN/m3
@@ -706,6 +707,28 @@ if uploaded_file:
             )
 
             st.plotly_chart(fig)
+
+            # crear buffer de memoria
+            excel_buffer = io.BytesIO()
+            
+            # exportar a Excel
+            with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+                df_working.to_excel(writer, sheet_name="Datos_Procesados", index=False)
+                # aquí podrías en el futuro agregar más hojas:
+                # resumen = df_working.describe()
+                # resumen.to_excel(writer, sheet_name="Resumen")
+                writer.save()
+            
+            # posición al inicio
+            excel_buffer.seek(0)
+            
+            # botón de descarga
+            st.download_button(
+                label="Descargar Excel",
+                data=excel_buffer,
+                file_name="cptu_procesado.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 else:
     st.info("Por favor, sube un archivo para comenzar.")
