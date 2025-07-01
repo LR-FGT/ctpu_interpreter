@@ -181,7 +181,7 @@ if uploaded_file:
                     df_checked = df_checked.dropna().reset_index(drop=True)
                 st.success("Shift aplicado.")
             else:
-            st.info("No se aplicó shift.")
+                st.info("No se aplicó shift.")
 
         # plot qc, fs, u2 con plotly
         fig = make_subplots(
