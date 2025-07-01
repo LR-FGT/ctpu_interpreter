@@ -164,7 +164,7 @@ if uploaded_file:
         st.plotly_chart(plot_ccf(valid_lags, valid_ccf, max_lag))
     
         # aplicar shift si el usuario quiere
-           shift_ok = st.checkbox(
+        shift_ok = st.checkbox(
             f"¿Quieres aplicar shift con lag {max_lag}?", 
             value=True, 
             key="shift_confirm"
