@@ -229,183 +229,184 @@ if uploaded_file:
             else:
                 st.info("No se aplicó shift.")
             st.session_state.df = df_shifted
+            
+    if "df" in st.session_state:
+        # --- SIEMPRE graficar después ---
+        df_plot = st.session_state.df.copy()
+        df_working = st.session_state.df.copy()
     
-            # --- SIEMPRE graficar después ---
-            df_plot = st.session_state.df.copy()
-            df_working = st.session_state.df.copy()
+        fig = make_subplots(
+            rows=1, cols=3,
+            shared_yaxes=True,
+            subplot_titles=["qc (MPa)", "fs (kPa)", "u2 (kPa)"]
+        )
+        fig.add_trace(go.Scatter(x=df_plot["qc"], y=df_plot["depth"], mode="lines", name="qc"), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df_plot["fs"], y=df_plot["depth"], mode="lines", name="fs"), row=1, col=2)
+        fig.add_trace(go.Scatter(x=df_plot["u2"], y=df_plot["depth"], mode="lines", name="u2"), row=1, col=3)
+        fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
+        fig.update_layout(height=700, width=1200, showlegend=True)
+        st.plotly_chart(fig)
+
+        # cálculo de elevación
+        if elev is not None and not math.isnan(elev):
+            df_working["elevation (m.s.n.m.)"] = elev - df_working["depth"]
+        else:
+            df_working["elevation (m.s.n.m.)"] = np.nan
         
-            fig = make_subplots(
-                rows=1, cols=3,
-                shared_yaxes=True,
-                subplot_titles=["qc (MPa)", "fs (kPa)", "u2 (kPa)"]
-            )
-            fig.add_trace(go.Scatter(x=df_plot["qc"], y=df_plot["depth"], mode="lines", name="qc"), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df_plot["fs"], y=df_plot["depth"], mode="lines", name="fs"), row=1, col=2)
-            fig.add_trace(go.Scatter(x=df_plot["u2"], y=df_plot["depth"], mode="lines", name="u2"), row=1, col=3)
-            fig.update_yaxes(autorange="reversed", title="Profundidad (m)")
-            fig.update_layout(height=700, width=1200, showlegend=True)
-            st.plotly_chart(fig)
-    
-            # cálculo de elevación
-            if elev is not None and not math.isnan(elev):
-                df_working["elevation (m.s.n.m.)"] = elev - df_working["depth"]
-            else:
-                df_working["elevation (m.s.n.m.)"] = np.nan
-            
-            # nivel freático
-            if wt is not None and not math.isnan(wt):
-                h = df_working["depth"] - wt
-                h[h < 0] = 0
-                df_working["u0 (kPa)"] = gamma_w * h
-            else:
-                df_working["u0 (kPa)"] = 0
-            
-            # qt
-            df_working["qt (MPa)"] = df_working["qc"] + (df_working["u2"] / 1000) * (1 - an)
-            
-            # sigma vo
-            df_working["svo (kPa)"] = gamma * df_working["depth"]
-            df_working["s'vo (kPa)"] = df_working["svo (kPa)"] - df_working["u0 (kPa)"]
-            
-            # Qt1
-            df_working["Qt1"] = (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) / df_working["s'vo (kPa)"]
-            
-            # Fr
-            df_working["Fr (%)"] = df_working["fs"] / (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) * 100
-            
-            # Ic inicial
-            df_working["Ic SBTn"] = ((3.47 - np.log10(df_working["Qt1"]))**2 + (np.log10(df_working["Fr (%)"]) + 1.22)**2)**0.5
-            
-            # n inicial
-            df_working["n"] = 0.381 * df_working["Ic SBTn"] + 0.05 * (df_working["s'vo (kPa)"] / pa) - 0.15
-            
-            # delta n
-            delta_n = 100 - df_working["n"]
-            
-            # iterar
-            df_working = calculate_Ic_SBTn(df_working, delta_n)
-            
-            # actualizar session_state
-            st.session_state.df = df_working
-    
-            # Graficar
-            fig = make_subplots(
-                rows=1, cols=5,
-                shared_yaxes=True,
-                horizontal_spacing=0.05,
-                subplot_titles=[
-                    "qc / qt (MPa)", 
-                    "σvo / σ'vo / u0 (kPa)", 
-                    "Fr (%)", 
-                    "Qt1", 
-                    "Ic SBTn"
-                ]
-            )
-            
-            # Columna 1: qc y qt
-            fig.add_trace(
-                go.Scatter(
-                    x=df_working["qc"],
-                    y=df_working["depth"],
-                    mode="lines",
-                    name="qc",
-                    line=dict(color="blue")
-                ),
-                row=1, col=1
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=df_working["qt (MPa)"],
-                    y=df_working["depth"],
-                    mode="lines",
-                    name="qt",
-                    line=dict(color="orange")
-                ),
-                row=1, col=1
-            )
-            
-            # Columna 2: σvo, σ'vo, u0
-            fig.add_trace(
-                go.Scatter(
-                    x=df_working["svo (kPa)"],
-                    y=df_working["depth"],
-                    mode="lines",
-                    name="σvo",
-                    line=dict(color="green")
-                ),
-                row=1, col=2
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=df_working["s'vo (kPa)"],
-                    y=df_working["depth"],
-                    mode="lines",
-                    name="σ'vo",
-                    line=dict(color="darkgreen")
-                ),
-                row=1, col=2
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=df_working["u0 (kPa)"],
-                    y=df_working["depth"],
-                    mode="lines",
-                    name="u0",
-                    line=dict(color="lightblue")
-                ),
-                row=1, col=2
-            )
-            
-            # Columna 3: Fr
-            fig.add_trace(
-                go.Scatter(
-                    x=df_working["Fr (%)"],
-                    y=df_working["depth"],
-                    mode="lines",
-                    name="Fr",
-                    line=dict(color="red")
-                ),
-                row=1, col=3
-            )
-            
-            # Columna 4: Qt1
-            fig.add_trace(
-                go.Scatter(
-                    x=df_working["Qt1"],
-                    y=df_working["depth"],
-                    mode="lines",
-                    name="Qt1",
-                    line=dict(color="brown")
-                ),
-                row=1, col=4
-            )
-            
-            # Columna 5: Ic SBTn
-            fig.add_trace(
-                go.Scatter(
-                    x=df_working["Ic SBTn"],
-                    y=df_working["depth"],
-                    mode="lines",
-                    name="Ic SBTn",
-                    line=dict(color="purple")
-                ),
-                row=1, col=5
-            )
-            
-            # Ejes y layout
-            fig.update_yaxes(
-                autorange="reversed",
-                title="Profundidad (m)",
-                row=1, col=1
-            )
-            fig.update_layout(
-                height=800,
-                width=1600,
-                title="Perfiles de procesamiento inicial",
-                showlegend=True
-            )
-            
-            st.plotly_chart(fig)
+        # nivel freático
+        if wt is not None and not math.isnan(wt):
+            h = df_working["depth"] - wt
+            h[h < 0] = 0
+            df_working["u0 (kPa)"] = gamma_w * h
+        else:
+            df_working["u0 (kPa)"] = 0
+        
+        # qt
+        df_working["qt (MPa)"] = df_working["qc"] + (df_working["u2"] / 1000) * (1 - an)
+        
+        # sigma vo
+        df_working["svo (kPa)"] = gamma * df_working["depth"]
+        df_working["s'vo (kPa)"] = df_working["svo (kPa)"] - df_working["u0 (kPa)"]
+        
+        # Qt1
+        df_working["Qt1"] = (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) / df_working["s'vo (kPa)"]
+        
+        # Fr
+        df_working["Fr (%)"] = df_working["fs"] / (df_working["qt (MPa)"] * 1000 - df_working["svo (kPa)"]) * 100
+        
+        # Ic inicial
+        df_working["Ic SBTn"] = ((3.47 - np.log10(df_working["Qt1"]))**2 + (np.log10(df_working["Fr (%)"]) + 1.22)**2)**0.5
+        
+        # n inicial
+        df_working["n"] = 0.381 * df_working["Ic SBTn"] + 0.05 * (df_working["s'vo (kPa)"] / pa) - 0.15
+        
+        # delta n
+        delta_n = 100 - df_working["n"]
+        
+        # iterar
+        df_working = calculate_Ic_SBTn(df_working, delta_n)
+        
+        # actualizar session_state
+        st.session_state.df = df_working
+
+        # Graficar
+        fig = make_subplots(
+            rows=1, cols=5,
+            shared_yaxes=True,
+            horizontal_spacing=0.05,
+            subplot_titles=[
+                "qc / qt (MPa)", 
+                "σvo / σ'vo / u0 (kPa)", 
+                "Fr (%)", 
+                "Qt1", 
+                "Ic SBTn"
+            ]
+        )
+        
+        # Columna 1: qc y qt
+        fig.add_trace(
+            go.Scatter(
+                x=df_working["qc"],
+                y=df_working["depth"],
+                mode="lines",
+                name="qc",
+                line=dict(color="blue")
+            ),
+            row=1, col=1
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=df_working["qt (MPa)"],
+                y=df_working["depth"],
+                mode="lines",
+                name="qt",
+                line=dict(color="orange")
+            ),
+            row=1, col=1
+        )
+        
+        # Columna 2: σvo, σ'vo, u0
+        fig.add_trace(
+            go.Scatter(
+                x=df_working["svo (kPa)"],
+                y=df_working["depth"],
+                mode="lines",
+                name="σvo",
+                line=dict(color="green")
+            ),
+            row=1, col=2
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=df_working["s'vo (kPa)"],
+                y=df_working["depth"],
+                mode="lines",
+                name="σ'vo",
+                line=dict(color="darkgreen")
+            ),
+            row=1, col=2
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=df_working["u0 (kPa)"],
+                y=df_working["depth"],
+                mode="lines",
+                name="u0",
+                line=dict(color="lightblue")
+            ),
+            row=1, col=2
+        )
+        
+        # Columna 3: Fr
+        fig.add_trace(
+            go.Scatter(
+                x=df_working["Fr (%)"],
+                y=df_working["depth"],
+                mode="lines",
+                name="Fr",
+                line=dict(color="red")
+            ),
+            row=1, col=3
+        )
+        
+        # Columna 4: Qt1
+        fig.add_trace(
+            go.Scatter(
+                x=df_working["Qt1"],
+                y=df_working["depth"],
+                mode="lines",
+                name="Qt1",
+                line=dict(color="brown")
+            ),
+            row=1, col=4
+        )
+        
+        # Columna 5: Ic SBTn
+        fig.add_trace(
+            go.Scatter(
+                x=df_working["Ic SBTn"],
+                y=df_working["depth"],
+                mode="lines",
+                name="Ic SBTn",
+                line=dict(color="purple")
+            ),
+            row=1, col=5
+        )
+        
+        # Ejes y layout
+        fig.update_yaxes(
+            autorange="reversed",
+            title="Profundidad (m)",
+            row=1, col=1
+        )
+        fig.update_layout(
+            height=800,
+            width=1600,
+            title="Perfiles de procesamiento inicial",
+            showlegend=True
+        )
+        
+        st.plotly_chart(fig)
 
 else:
     st.info("Por favor, sube un archivo para comenzar.")
